@@ -18,34 +18,84 @@ const Generator: React.FC<GeneratorProps> = ({
   const {
     toast
   } = useToast();
+  // Helper function to convert File to base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix to get just the base64 string
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleGenerate = async (prompt: string, options: any) => {
     setIsGenerating(true);
     setGeneratedImage(null);
     try {
-      const response = await fetch('https://api.openai.com/v1/images/generations', {
+      // Build content array starting with the text prompt
+      const content: any[] = [
+        {
+          type: "input_text",
+          text: prompt
+        }
+      ];
+
+      // Add reference images if any
+      if (options.referenceImages && options.referenceImages.length > 0) {
+        for (const imageFile of options.referenceImages) {
+          const base64Image = await convertFileToBase64(imageFile);
+          content.push({
+            type: "input_image",
+            image_url: `data:image/jpeg;base64,${base64Image}`
+          });
+        }
+      }
+
+      // Use Responses API instead of Image API for multimodal support
+      const response = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "gpt-image-1",
-          prompt: prompt,
-          size: getSizeFromAspectRatio(options.size)
+          model: "gpt-4.1-mini",
+          input: [
+            {
+              role: "user",
+              content: content
+            }
+          ],
+          tools: [{ type: "image_generation" }]
         })
       });
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error?.message || 'Failed to generate image');
       }
+
       const data = await response.json();
-      const imageData = data.data[0];
-      const imageUrl = imageData.url || `data:image/png;base64,${imageData.b64_json}`;
-      setGeneratedImage(imageUrl);
-      toast({
-        title: "Image Generated!",
-        description: "Your AI-generated image is ready."
-      });
+      
+      // Extract image from response
+      const imageGenerationCalls = data.output?.filter((output: any) => output.type === "image_generation_call");
+      
+      if (imageGenerationCalls && imageGenerationCalls.length > 0) {
+        const imageBase64 = imageGenerationCalls[0].result;
+        const imageUrl = `data:image/png;base64,${imageBase64}`;
+        setGeneratedImage(imageUrl);
+        toast({
+          title: "Image Generated!",
+          description: "Your AI-generated image is ready."
+        });
+      } else {
+        throw new Error('No image was generated in the response');
+      }
     } catch (error: any) {
       console.error('Image generation error:', error);
       toast({
