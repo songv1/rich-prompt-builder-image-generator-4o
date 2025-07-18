@@ -29,7 +29,7 @@ const Generator: React.FC<GeneratorProps> = ({
           'Authorization': `Bearer ${apiKey}`
         },
         body: JSON.stringify({
-          model: "dall-e-3",
+          model: "gpt-image-1",
           prompt: prompt,
           n: 1,
           size: getSizeFromAspectRatio(options.size),
