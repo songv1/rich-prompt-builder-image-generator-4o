@@ -31,10 +31,7 @@ const Generator: React.FC<GeneratorProps> = ({
         body: JSON.stringify({
           model: "gpt-image-1",
           prompt: prompt,
-          n: 1,
-          size: getSizeFromAspectRatio(options.size),
-          quality: "standard",
-          response_format: "url"
+          size: getSizeFromAspectRatio(options.size)
         })
       });
       if (!response.ok) {
