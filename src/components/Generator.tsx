@@ -39,7 +39,8 @@ const Generator: React.FC<GeneratorProps> = ({
         throw new Error(errorData.error?.message || 'Failed to generate image');
       }
       const data = await response.json();
-      const imageUrl = data.data[0].url;
+      const imageData = data.data[0];
+      const imageUrl = imageData.url || `data:image/png;base64,${imageData.b64_json}`;
       setGeneratedImage(imageUrl);
       toast({
         title: "Image Generated!",
