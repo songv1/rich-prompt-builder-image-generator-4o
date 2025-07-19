@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Brush, Sparkles, Camera, Palette, Droplets, Shapes } from 'lucide-react';
+import { Brush, Sparkles, Camera, Palette, Droplets, Shapes, Zap } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface StyleBlockProps {
@@ -12,7 +12,7 @@ const presetStyles = [
   { value: 'None', label: 'None', icon: Sparkles, description: 'No specific style' },
   { value: 'Photorealistic', label: 'Photorealistic', icon: Camera, description: 'Realistic photography' },
   { value: 'Flat Illustration', label: 'Flat Illustration', icon: Brush, description: 'Simple, flat design' },
-  { value: 'Minimalist', label: 'Minimalist', icon: Palette, description: 'Clean and simple' },
+  { value: 'Whimsical 3D', label: 'Whimsical 3D', icon: Zap, description: 'Playful 3D style' },
   { value: 'Watercolor', label: 'Watercolor', icon: Droplets, description: 'Paint-like effect' },
   { value: 'Low Poly', label: 'Low Poly', icon: Shapes, description: 'Geometric faceted style' },
 ];
