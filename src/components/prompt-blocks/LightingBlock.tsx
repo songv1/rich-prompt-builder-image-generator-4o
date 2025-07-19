@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sun, Moon, Lightbulb, Zap, Sunset, CloudSun } from 'lucide-react';
+import { Sun, Moon, Lightbulb, Zap, Sunset, CloudSun, CircleOff } from 'lucide-react';
 
 interface LightingBlockProps {
   value: string;
@@ -11,7 +11,7 @@ const lightingOptions = [
   { 
     value: 'None', 
     label: 'None', 
-    icon: CloudSun, 
+    icon: CircleOff, 
     description: 'Natural ambient lighting' 
   },
   { 

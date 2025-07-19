@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Grid3X3, Focus, Move, RotateCw, Maximize2, Eye } from 'lucide-react';
+import { Grid3X3, Focus, Move, RotateCw, Maximize2, Eye, CircleOff } from 'lucide-react';
 
 interface CompositionBlockProps {
   value: string;
@@ -11,7 +11,7 @@ const compositions = [
   { 
     value: 'None', 
     label: 'None', 
-    icon: Grid3X3, 
+    icon: CircleOff, 
     description: 'No specific composition rules' 
   },
   { 
