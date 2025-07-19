@@ -11,7 +11,7 @@ interface StyleBlockProps {
 const presetStyles = [
   { value: 'None', label: 'None', icon: Sparkles, description: 'No specific style' },
   { value: 'Photorealistic', label: 'Photorealistic', icon: Camera, description: 'Realistic photography' },
-  { value: 'Flat Illustration', label: 'Flat Illustration', icon: Brush, description: 'Simple, flat design' },
+  { value: 'Flat Illustration', label: 'Flat Illustration', icon: Palette, description: 'Simple, flat design' },
   { value: 'Whimsical 3D', label: 'Whimsical 3D', icon: Box, description: 'Playful 3D style' },
   { value: 'Watercolor', label: 'Watercolor', icon: Droplets, description: 'Paint-like effect' },
   { value: 'Low Poly', label: 'Low Poly', icon: Shapes, description: 'Geometric faceted style' },
