@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import PromptBuilder from './PromptBuilder';
 import ImageResult from './ImageResult';
-interface GeneratorProps {
-  apiKey: string;
-  onLogout: () => void;
-}
-const Generator: React.FC<GeneratorProps> = ({
-  apiKey,
-  onLogout
-}) => {
+
+const Generator: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const {
@@ -37,58 +31,32 @@ const Generator: React.FC<GeneratorProps> = ({
     setIsGenerating(true);
     setGeneratedImage(null);
     try {
-      // Build content array starting with the text prompt
-      const content: any[] = [
-        {
-          type: "input_text",
-          text: prompt
-        }
-      ];
-
-      // Add reference images if any
+      // Convert reference images to base64 if any
+      const referenceImages: string[] = [];
       if (options.referenceImages && options.referenceImages.length > 0) {
         for (const imageFile of options.referenceImages) {
           const base64Image = await convertFileToBase64(imageFile);
-          content.push({
-            type: "input_image",
-            image_url: `data:image/jpeg;base64,${base64Image}`
-          });
+          referenceImages.push(base64Image);
         }
       }
 
-      // Use Responses API instead of Image API for multimodal support
-      const response = await fetch('https://api.openai.com/v1/responses', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4.1-mini",
-          input: [
-            {
-              role: "user",
-              content: content
-            }
-          ],
-          tools: [{ type: "image_generation" }]
-        })
+      // Call our edge function instead of directly calling OpenAI
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: {
+          prompt,
+          options: {
+            ...options,
+            referenceImages
+          }
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Failed to generate image');
+      if (error) {
+        throw new Error(error.message || 'Failed to generate image');
       }
 
-      const data = await response.json();
-      
-      // Extract image from response
-      const imageGenerationCalls = data.output?.filter((output: any) => output.type === "image_generation_call");
-      
-      if (imageGenerationCalls && imageGenerationCalls.length > 0) {
-        const imageBase64 = imageGenerationCalls[0].result;
-        const imageUrl = `data:image/png;base64,${imageBase64}`;
-        setGeneratedImage(imageUrl);
+      if (data?.imageUrl) {
+        setGeneratedImage(data.imageUrl);
         toast({
           title: "Image Generated!",
           description: "Your AI-generated image is ready."
@@ -100,7 +68,7 @@ const Generator: React.FC<GeneratorProps> = ({
       console.error('Image generation error:', error);
       toast({
         title: "Generation Failed",
-        description: error.message || "Failed to generate image. Please check your API key and try again.",
+        description: error.message || "Failed to generate image. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -125,14 +93,6 @@ const Generator: React.FC<GeneratorProps> = ({
         return '1024x1024';
     }
   };
-  const handleLogout = () => {
-    sessionStorage.removeItem('openai_api_key');
-    onLogout();
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out."
-    });
-  };
   return <div className="h-screen flex flex-col bg-gradient-secondary">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm flex-shrink-0">
@@ -143,10 +103,6 @@ const Generator: React.FC<GeneratorProps> = ({
             </div>
             <h1 className="font-semibold text-lg">AI Image Generator</h1>
           </div>
-          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2">
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
         </div>
       </header>
 
