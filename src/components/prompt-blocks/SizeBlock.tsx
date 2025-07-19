@@ -16,17 +16,17 @@ const aspectRatios = [
     dimensions: 'Social media, avatars'
   },
   { 
-    value: '3:4', 
+    value: '2:3', 
     label: 'Portrait', 
     icon: Smartphone, 
-    description: '1024x1792',
+    description: '1024x1536',
     dimensions: 'Mobile, stories'
   },
   { 
-    value: '4:3', 
+    value: '3:2', 
     label: 'Landscape', 
     icon: Monitor, 
-    description: '1792x1024',
+    description: '1536x1024',
     dimensions: 'Presentations, web'
   },
 ];
