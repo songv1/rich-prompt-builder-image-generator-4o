@@ -1,44 +1,86 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Sparkles, Zap } from 'lucide-react';
+import { Download, Sparkles, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import SafeImage from './SafeImage';
+import { ErrorHandler } from '@/utils/errorHandling';
 
 interface ImageResultProps {
   isGenerating: boolean;
   imageUrl: string | null;
+  onRetry?: () => void;
+  generationError?: string;
 }
 
-const ImageResult: React.FC<ImageResultProps> = ({ isGenerating, imageUrl }) => {
+const ImageResult: React.FC<ImageResultProps> = ({ 
+  isGenerating, 
+  imageUrl, 
+  onRetry,
+  generationError 
+}) => {
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { isOnline } = useNetworkStatus();
 
   const handleDownload = async () => {
     if (!imageUrl) return;
 
+    setIsDownloading(true);
+    setDownloadError(null);
+
     try {
-      // Fetch the image and convert to blob for download
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      let blob: Blob;
       
+      if (imageUrl.startsWith('data:')) {
+        // Handle base64 data
+        const response = await fetch(imageUrl);
+        blob = await response.blob();
+      } else {
+        // Handle URL
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status}`);
+        }
+        blob = await response.blob();
+      }
+
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `ai-generated-image-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Clean up the object URL
       window.URL.revokeObjectURL(url);
+
     } catch (error) {
       console.error('Download error:', error);
-      // Fallback to direct link
-      const link = document.createElement('a');
-      link.href = imageUrl;
-      link.download = `ai-generated-image-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to download image';
+      setDownloadError(errorMessage);
+      
+      // Fallback: try direct link
+      try {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `ai-generated-image-${Date.now()}.png`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setDownloadError(null);
+      } catch (fallbackError) {
+        setDownloadError('Download failed. Please try right-clicking and "Save image as..."');
+      }
+    } finally {
+      setIsDownloading(false);
     }
+  };
+
+  const clearDownloadError = () => {
+    setDownloadError(null);
   };
 
   return (
@@ -49,7 +91,46 @@ const ImageResult: React.FC<ImageResultProps> = ({ isGenerating, imageUrl }) => 
         <p className="text-sm text-muted-foreground">
           Your AI-generated image will appear here
         </p>
+        {!isOnline && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              You're offline. Please check your internet connection.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
+
+      {/* Error Display */}
+      <AnimatePresence>
+        {(generationError || downloadError) && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {generationError || downloadError}
+                <div className="mt-2 flex gap-2">
+                  {generationError && onRetry && (
+                    <Button variant="outline" size="sm" onClick={onRetry}>
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      Retry
+                    </Button>
+                  )}
+                  {downloadError && (
+                    <Button variant="outline" size="sm" onClick={clearDownloadError}>
+                      Dismiss
+                    </Button>
+                  )}
+                </div>
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Result Area */}
       <div className="flex-1 min-h-0">
@@ -63,6 +144,7 @@ const ImageResult: React.FC<ImageResultProps> = ({ isGenerating, imageUrl }) => 
                   <ImageDisplay 
                     key="image"
                     imageUrl={imageUrl} 
+                    onError={(error) => console.error('Image display error:', error)}
                   />
                 ) : (
                   <PlaceholderState key="placeholder" />
@@ -84,11 +166,12 @@ const ImageResult: React.FC<ImageResultProps> = ({ isGenerating, imageUrl }) => 
           >
             <Button 
               onClick={handleDownload}
+              disabled={isDownloading || !isOnline}
               className="w-full h-10 gap-2"
               variant="outline"
             >
               <Download className="w-4 h-4" />
-              Download Image
+              {isDownloading ? 'Downloading...' : 'Download Image'}
             </Button>
           </motion.div>
         )}
@@ -162,10 +245,12 @@ const LoadingAnimation: React.FC = () => {
 
 interface ImageDisplayProps {
   imageUrl: string;
+  onError?: (error: string) => void;
 }
 
 const ImageDisplay: React.FC<ImageDisplayProps> = ({ 
-  imageUrl
+  imageUrl,
+  onError
 }) => {
   return (
     <motion.div
@@ -174,10 +259,11 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({
       exit={{ opacity: 0, scale: 0.95 }}
       className="absolute inset-0"
     >
-      <img 
-        src={imageUrl} 
+      <SafeImage
+        src={imageUrl}
         alt="Generated AI image"
-        className="w-full h-full object-contain"
+        className="w-full h-full"
+        onError={onError}
       />
     </motion.div>
   );

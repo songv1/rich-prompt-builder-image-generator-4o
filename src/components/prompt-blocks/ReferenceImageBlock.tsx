@@ -1,7 +1,10 @@
-import React, { useRef } from 'react';
+
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { validateFile, ErrorHandler } from '@/utils/errorHandling';
 
 interface ReferenceImageBlockProps {
   images: File[];
@@ -10,44 +13,115 @@ interface ReferenceImageBlockProps {
 
 const ReferenceImageBlock: React.FC<ReferenceImageBlockProps> = ({ images, onChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [processingFiles, setProcessingFiles] = useState(false);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const newImages = [...images, ...files].slice(0, 5); // Max 5 images
+    setProcessingFiles(true);
+    setErrors([]);
+
+    const validFiles: File[] = [];
+    const newErrors: string[] = [];
+
+    for (const file of files) {
+      const error = validateFile(file);
+      if (error) {
+        newErrors.push(`${file.name}: ${ErrorHandler.getUserFriendlyMessage(error)}`);
+      } else {
+        validFiles.push(file);
+      }
+    }
+
+    if (newErrors.length > 0) {
+      setErrors(newErrors);
+    }
+
+    const newImages = [...images, ...validFiles].slice(0, 5); // Max 5 images
     onChange(newImages);
+    setProcessingFiles(false);
+
+    // Clear the input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     onChange(newImages);
+    
+    // Clear errors when removing images
+    if (errors.length > 0) {
+      setErrors([]);
+    }
   };
 
   const triggerFileSelect = () => {
     fileInputRef.current?.click();
   };
 
+  const clearErrors = () => {
+    setErrors([]);
+  };
+
   return (
     <div className="space-y-4">
+      {/* Error Display */}
+      <AnimatePresence>
+        {errors.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+          >
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-1">
+                  {errors.map((error, index) => (
+                    <div key={index} className="text-sm">{error}</div>
+                  ))}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={clearErrors}
+                  className="mt-2"
+                >
+                  Dismiss
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Upload Area */}
       <div 
-        className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer"
-        onClick={triggerFileSelect}
+        className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors cursor-pointer ${
+          processingFiles 
+            ? 'border-muted-foreground/20 cursor-not-allowed' 
+            : 'border-muted-foreground/30 hover:border-primary/50'
+        }`}
+        onClick={!processingFiles ? triggerFileSelect : undefined}
       >
-        <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
+        <Upload className={`w-6 h-6 mx-auto mb-1 ${processingFiles ? 'text-muted-foreground/50' : 'text-muted-foreground'}`} />
         <p className="text-xs text-muted-foreground mb-1">
-          Click to upload images
+          {processingFiles ? 'Processing files...' : 'Click to upload images'}
         </p>
         <p className="text-xs text-muted-foreground">
-          Up to 5 • PNG, JPG, WEBP
+          Up to 5 • PNG, JPG, WEBP • Max 5MB each
         </p>
       </div>
 
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp"
         multiple
         onChange={handleFileSelect}
+        disabled={processingFiles}
         className="hidden"
       />
 
@@ -74,6 +148,9 @@ const ReferenceImageBlock: React.FC<ReferenceImageBlockProps> = ({ images, onCha
                       src={URL.createObjectURL(file)}
                       alt={`Reference ${index + 1}`}
                       className="w-full h-full object-cover"
+                      onError={() => {
+                        setErrors(prev => [...prev, `Failed to display ${file.name}`]);
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -101,10 +178,11 @@ const ReferenceImageBlock: React.FC<ReferenceImageBlockProps> = ({ images, onCha
         <Button 
           variant="outline" 
           onClick={triggerFileSelect}
+          disabled={processingFiles}
           className="w-full"
         >
           <Upload className="w-4 h-4 mr-2" />
-          Add Reference Image ({images.length}/5)
+          {processingFiles ? 'Processing...' : `Add Reference Image (${images.length}/5)`}
         </Button>
       )}
     </div>
