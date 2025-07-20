@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Sun, Moon, Lightbulb, Zap, Sunset, CloudSun, CircleOff } from 'lucide-react';
+import { Sun, Moon, Lightbulb, Film, Sunset, Cloud, Mountain, Eclipse, CircleOff } from 'lucide-react';
 
 interface LightingBlockProps {
   value: string;
@@ -23,25 +23,25 @@ const lightingOptions = [
   { 
     value: 'Cinematic', 
     label: 'Cinematic', 
-    icon: Zap, 
+    icon: Film, 
     description: 'Dramatic film-like lighting' 
   },
   { 
     value: 'Soft', 
     label: 'Soft', 
-    icon: CloudSun, 
+    icon: Cloud, 
     description: 'Even, diffused light' 
   },
   { 
     value: 'Natural', 
     label: 'Natural', 
-    icon: Sun, 
+    icon: Mountain, 
     description: 'Bright daylight' 
   },
   { 
     value: 'Backlit', 
     label: 'Backlit', 
-    icon: Sun, 
+    icon: Eclipse, 
     description: 'Light from behind subject' 
   },
 ];

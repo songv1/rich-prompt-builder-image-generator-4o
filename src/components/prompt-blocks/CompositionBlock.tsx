@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Grid3X3, Focus, Move, RotateCw, Maximize2, Eye, CircleOff } from 'lucide-react';
+import { Grid3X3, Focus, Maximize2, Pyramid, Aperture, Eye, Binoculars, CircleOff } from 'lucide-react';
 
 interface CompositionBlockProps {
   value: string;
@@ -29,25 +29,25 @@ const compositions = [
   { 
     value: 'Dynamic Angle', 
     label: 'Dynamic Angle', 
-    icon: RotateCw, 
+    icon: Pyramid, 
     description: 'Tilted or angled perspective' 
   },
   { 
     value: 'Close-up', 
     label: 'Close-up', 
-    icon: Maximize2, 
+    icon: Aperture, 
     description: 'Tight framing on subject' 
   },
   { 
     value: 'Wide Shot', 
     label: 'Wide Shot', 
-    icon: Move, 
+    icon: Maximize2, 
     description: 'Broad view with context' 
   },
   { 
     value: 'Birds Eye View', 
     label: 'Bird\'s Eye', 
-    icon: Eye, 
+    icon: Binoculars, 
     description: 'Top-down perspective' 
   },
   { 
